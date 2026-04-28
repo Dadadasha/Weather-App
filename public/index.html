@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Погодное Приложение</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(to bottom, #87CEEB, #4682B4);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            color: #E0FFFF;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        .container {
+            max-width: 600px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        input, select, button {
+            padding: 10px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        input, select {
+            width: 100%;
+            box-sizing: border-box;
+            background: rgba(255, 255, 255, 0.8);
+            color: #333;
+        }
+        button {
+            background-color: #00BFFF;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #1E90FF;
+        }
+        #weather-result {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+            text-align: center;
+        }
+        #favorites {
+            margin-top: 20px;
+        }
+        #favorites ul {
+            list-style: none;
+            padding: 0;
+        }
+        #favorites li {
+            background: rgba(255, 255, 255, 0.1);
+            margin: 5px 0;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #favorites li:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        .error {
+            color: #FFD700;
+        }
+    </style>
+</head>
+<body>
+<h1>🌤️ Погодное Приложение</h1>
+<div class="container">
+    <input type="text" id="city-input" placeholder="Введите город (например, Москва)">
+    <select id="unit-select">
+        <option value="metric">°C (Цельсий)</option>
+        <option value="us">°F (Фаренгейт)</option>
+    </select>
+    <button id="get-weather-btn">Получить погоду</button>
+    <button id="add-favorite-btn">Добавить в избранное</button>
+
+    <div id="weather-result"></div>
+
+    <div id="favorites">
+        <h3>Избранные города:</h3>
+        <ul id="favorites-list"></ul>
+    </div>
+</div>
+
+<script>
+    const cityInput = document.getElementById('city-input');
+    const unitSelect = document.getElementById('unit-select');
+    const getWeatherBtn = document.getElementById('get-weather-btn');
+    const addFavoriteBtn = document.getElementById('add-favorite-btn');
+    const weatherResult = document.getElementById('weather-result');
+    const favoritesList = document.getElementById('favorites-list');
+
+    let favorites = JSON.parse(localStorage.getItem('favorites')) || [];
+    renderFavorites();
+
+    getWeatherBtn.addEventListener('click', async () => {
+        const city = cityInput.value.trim();
+        const units = unitSelect.value;
+        if (!city) {
+            weatherResult.innerHTML = '<p class="error">Пожалуйста, введите город.</p>';
+            return;
+        }
+
+        try {
+            const response = await fetch(`/weather?city=${encodeURIComponent(city)}&units=${units}`);
+            const data = await response.json();
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            const unitSymbol = units === 'metric' ? '°C' : '°F';
+            weatherResult.innerHTML = `
+                    <h2>${data.city}</h2>
+                    <p>Температура: ${data.temperature}${unitSymbol}</p>
+                    <p>Описание: ${data.weather}</p>
+                    <p>Время: ${new Date(data.timestamp).toLocaleString()}</p>
+                `;
+        } catch (error) {
+            weatherResult.innerHTML = `<p class="error">Ошибка: ${error.message}</p>`;
+        }
+    });
+
+    addFavoriteBtn.addEventListener('click', () => {
+        const city = cityInput.value.trim();
+        if (city && !favorites.includes(city)) {
+            favorites.push(city);
+            localStorage.setItem('favorites', JSON.stringify(favorites));
+            renderFavorites();
+        }
+    });
+
+    function renderFavorites() {
+        favoritesList.innerHTML = '';
+        favorites.forEach(city => {
+            const li = document.createElement('li');
+            li.textContent = city;
+            li.addEventListener('click', () => {
+                cityInput.value = city;
+            });
+            favoritesList.appendChild(li);
+        });
+    }
+</script>
+</body>
+</html>
